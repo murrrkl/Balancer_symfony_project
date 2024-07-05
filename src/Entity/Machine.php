@@ -6,91 +6,140 @@ use App\Repository\MachineRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Routing\Route;
 
 #[ORM\Entity(repositoryClass: MachineRepository::class)]
 class Machine
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private $id;
+    #[ORM\Column]
+    private ?int $id = null;
 
-    #[ORM\Column(type: 'integer')]
-    private $totalMemory;
+    #[ORM\Column]
+    private ?int $totalMemory = null;
 
-    #[ORM\Column(type: 'integer')]
-    private $totalProcessor;
+    #[ORM\Column]
+    private ?int $totalProcessor = null;
 
-    #[ORM\Column(type: 'integer')]
-    private $numberOfProcesses = 0;
+    #[ORM\Column]
+    private ?int $freeMemory = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity=Process::class, mappedBy="machine", orphanRemoval=true)
-     */
-    private $processes;
+    #[ORM\Column]
+    private ?int $freeProcessor = null;
 
-    public function __construct() {
+    #[ORM\Column]
+    private ?int $numberOfProcesses = null;
+
+    #[ORM\OneToMany(mappedBy: 'machine', targetEntity: Process::class)]
+    private Collection $processes;
+
+    public function __construct(int $totalMemory, int $totalProcessor) {
+        $this->totalMemory = $totalMemory;
+        $this->totalProcessor = $totalProcessor;
+
+        $this->freeMemory = $totalMemory;
+        $this->freeProcessor = $totalProcessor;
+        $this->numberOfProcesses = 0;
+
         $this->processes = new ArrayCollection();
     }
 
-    /**
-     * @return Collection|Process[]
-     */
-    public function getProcesses() {
-        return $this->processes;
-    }
-
-    public function addProcess(Process $process) {
-        if (!$this->processes->contains($process)) {
-            $this->processes[] = $process;
-            $process->setMachine($this);
-            $this->numberOfProcesses++;
-        }
-        return $this;
-    }
-
-    public function getId() {
+    public function getId(): ?int {
         return $this->id;
     }
 
-    public function setTotalMemory($totalMemory) : static {
+    public function getTotalMemory(): ?int {
+        return $this->totalMemory;
+    }
+
+    public function setTotalMemory(int $totalMemory): static {
         $this->totalMemory = $totalMemory;
 
         return $this;
     }
 
-    public function setTotalProcessor($totalProcessor) : static {
+    public function getTotalProcessor(): ?int {
+        return $this->totalProcessor;
+    }
+
+    public function setTotalProcessor(int $totalProcessor): static {
         $this->totalProcessor = $totalProcessor;
 
         return $this;
     }
 
-    public function setNumberOfProcesses(int $numberOfProcesses) : static {
+    public function getFreeMemory(): ?int {
+        return $this->freeMemory;
+    }
+
+    public function setFreeMemory(int $freeMemory): static {
+        $this->freeMemory = $freeMemory;
+
+        return $this;
+    }
+
+    public function getFreeProcessor(): ?int {
+        return $this->freeProcessor;
+    }
+
+    public function setFreeProcessor(int $freeProcessor): static {
+        $this->freeProcessor = $freeProcessor;
+
+        return $this;
+    }
+
+    public function getNumberOfProcesses(): ?int {
+        return $this->numberOfProcesses;
+    }
+
+    public function setNumberOfProcesses(int $numberOfProcesses): static {
         $this->numberOfProcesses = $numberOfProcesses;
 
         return $this;
     }
 
-    public function getTotalMemory() {
-        return $this->totalMemory;
-
+    /**
+     * @return Collection<int, Process>
+     */
+    public function getProcesses(): Collection {
+        return $this->processes;
     }
 
-    public function getTotalProcessor() {
-        return $this->totalProcessor;
+    public function addProcess(Process $process): static {
+        if (!$this->processes->contains($process)) {
+            $this->processes->add($process);
+            $process->setMachine($this);
+            $this->freeMemory -= $process->getRequiredMemory();
+            $this->freeProcessor -= $process->getRequiredProcessor();
+            $this->numberOfProcesses++;
+        }
+
+        return $this;
     }
 
-    public function getNumberOfProcesses() {
-        return $this->numberOfProcesses;
-    }
+    public function removeProcess(Process $process): static {
+        if ($this->processes->removeElement($process)) {
 
-    public function removeProcess(Process $process) : static {
-        if ($this->processes->contains($process)) {
-            $this->processes->removeElement($process);
             if ($process->getMachine() === $this) {
                 $process->setMachine(null);
             }
         }
+
         return $this;
+    }
+
+    public function checkMachineProcessCompatibility(Process $process) : bool {
+        if ($this->getFreeProcessor() >= $process->getRequiredProcessor() && $this->getFreeMemory() >= $process->getRequiredMemory()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function freeingUpResources(Process $process) {
+        $this->freeMemory += $process->getRequiredMemory();
+        $this->freeProcessor += $process->getRequiredProcessor();
+        $this->numberOfProcesses--;
     }
 }

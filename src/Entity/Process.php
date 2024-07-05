@@ -10,52 +10,62 @@ class Process
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private $id;
+    #[ORM\Column]
+    private ?int $id = null;
 
-    #[ORM\Column(type: 'integer')]
-    private $requiredMemory;
+    #[ORM\Column]
+    private ?int $requiredMemory = null;
 
-    #[ORM\Column(type: 'integer')]
-    private $requiredProcessor;
+    #[ORM\Column]
+    private ?int $requiredProcessor = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity=Machine::class, inversedBy="process")
-     * @ORM\JoinColumn(nullable=true)
-     */
-    private $machine = null;
+    #[ORM\ManyToOne(inversedBy: 'processes')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Machine $machine = null;
 
-    public function getId() {
+    public function __construct(int $requiredMemory, int $requiredProcessor) {
+        $this->requiredMemory = $requiredMemory;
+        $this->requiredProcessor = $requiredProcessor;
+    }
+
+    public function getId(): ?int
+    {
         return $this->id;
     }
 
-    public function setRequiredMemory($requiredMemory) : static {
+    public function getRequiredMemory(): ?int
+    {
+        return $this->requiredMemory;
+    }
+
+    public function setRequiredMemory(int $requiredMemory): static
+    {
         $this->requiredMemory = $requiredMemory;
 
         return $this;
     }
 
-    public function setRequiredProcessor($requiredProcessor) : static{
+    public function getRequiredProcessor(): ?int
+    {
+        return $this->requiredProcessor;
+    }
+
+    public function setRequiredProcessor(int $requiredProcessor): static
+    {
         $this->requiredProcessor = $requiredProcessor;
 
         return $this;
     }
 
-    public function setMachine(Machine $machine) : static {
+    public function getMachine(): ?Machine
+    {
+        return $this->machine;
+    }
+
+    public function setMachine(?Machine $machine): static
+    {
         $this->machine = $machine;
 
         return $this;
-    }
-
-    public function getRequiredMemory() {
-        return $this->requiredMemory;
-    }
-
-    public function getRequiredProcessor() {
-        return $this->requiredProcessor;
-    }
-
-    public function getMachine() {
-        return $this->machine;
     }
 }
